@@ -39,13 +39,15 @@ func main() {
 		log.Fatal("Error: proper usage= --file=/path/to/endpoints.yaml")
 	}
 
+	fmt.Println("Starting up...")
+
 	// init a map of domain statuses
 	domainStatusMap := make(map[string]*DomainStatus)
 
 	// load endpoints from YAML if valid
 	endpoints, err := loadYAML(*fp)
 	if err != nil {
-		log.Fatalf("Failure to load YAML: ", err)
+		log.Fatal("Failure to load YAML: ", err)
 	}
 
 	startTimer(endpoints, domainStatusMap)
@@ -116,9 +118,9 @@ func runChecks(endpoints []Endpoint, domainStatusMap map[string]*DomainStatus) {
 		// check for 200 status code and proper latency < 500
 		if (res.StatusCode >= 200 && res.StatusCode < 300) && totalTime < 500 {
 			domainStatusMap[domain].UpCount++
-			// log.Printf("UP: %s, %dms", domain, totalTime)
+			log.Printf("UP: %s, %d, %dms", domain, res.StatusCode, totalTime)
 		} else {
-			// log.Printf("DOWN: %s, %dms", domain, totalTime)
+			log.Printf("DOWN: %s, %d, %dms", domain, res.StatusCode, totalTime)
 		}
 	}
 }
@@ -131,9 +133,10 @@ func startTimer(endpoints []Endpoint, domainStatusMap map[string]*DomainStatus) 
 		//do work
 		runChecks(endpoints, domainStatusMap)
 		getAvailPercent(domainStatusMap)
+		fmt.Println("================================================================")
 	})
 	if err != nil {
-		log.Fatalf("Error adding cron job: ", err)
+		log.Fatal("Error adding cron job: ", err)
 	}
 
 	c.Start()
@@ -155,7 +158,9 @@ func getAvailPercent(domainStatusMap map[string]*DomainStatus) {
 	for domain, status := range domainStatusMap {
 		availPercent := 0.0
 		if status.Requests > 0 {
-			availPercent = (float64(status.UpCount) / float64(status.Requests)) * 100
+			// 100 * (number of HTTP requests that had an outcome of UP / number of HTTP requests)
+			fmt.Println(domain, "upcount=", status.UpCount, "reqcount=", status.Requests)
+			availPercent = 100 * (float64(status.UpCount) / float64(status.Requests))
 		}
 		availPercentRound := int(math.Round(availPercent))
 		fmt.Printf("%s has %d%% availability percentage\n", domain, availPercentRound)
