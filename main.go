@@ -2,7 +2,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -46,6 +48,8 @@ func main() {
 		log.Fatalf("Failure to load YAML: ", err)
 	}
 
+	startTimer(endpoints, domainStatusMap)
+
 	// block the main thread
 	select {}
 }
@@ -61,6 +65,8 @@ func runChecks(endpoints []Endpoint, domainStatusMap map[string]*DomainStatus) {
 			continue
 		}
 
+		// this will give us all domains, including subdomains
+		// publicsuffix.EffectiveTLDPlusOne will strip subdomain if wanted
 		domain := parsedURL.Hostname()
 
 		// if domain is not in map, add it
@@ -110,19 +116,21 @@ func runChecks(endpoints []Endpoint, domainStatusMap map[string]*DomainStatus) {
 		// check for 200 status code and proper latency < 500
 		if (res.StatusCode >= 200 && res.StatusCode < 300) && totalTime < 500 {
 			domainStatusMap[domain].UpCount++
-			log.Printf("UP: %s, %dms", domain, totalTime)
+			// log.Printf("UP: %s, %dms", domain, totalTime)
 		} else {
-			log.Printf("DOWN: %s, %dms", domain, totalTime)
+			// log.Printf("DOWN: %s, %dms", domain, totalTime)
 		}
 	}
 }
 
-func startTimer() {
+func startTimer(endpoints []Endpoint, domainStatusMap map[string]*DomainStatus) {
 	c := cron.New()
 
 	// use cron for scheduling
 	err := c.AddFunc("@every 15s", func() {
-		//do stuff
+		//do work
+		runChecks(endpoints, domainStatusMap)
+		getAvailPercent(domainStatusMap)
 	})
 	if err != nil {
 		log.Fatalf("Error adding cron job: ", err)
@@ -141,4 +149,15 @@ func loadYAML(fp string) ([]Endpoint, error) {
 	// unmarshals endpoints from a yaml file or errors out
 	err = yaml.Unmarshal(data, &endpoints)
 	return endpoints, err
+}
+
+func getAvailPercent(domainStatusMap map[string]*DomainStatus) {
+	for domain, status := range domainStatusMap {
+		availPercent := 0.0
+		if status.Requests > 0 {
+			availPercent = (float64(status.UpCount) / float64(status.Requests)) * 100
+		}
+		availPercentRound := int(math.Round(availPercent))
+		fmt.Printf("%s has %d%% availability percentage\n", domain, availPercentRound)
+	}
 }
