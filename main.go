@@ -31,6 +31,9 @@ type DomainStatus struct {
 }
 
 func main() {
+	// flag for max runs
+	maxRuns := flag.Int("maxRuns", 0, "Number of iterations before exit (0 is infinite)")
+
 	// get file path from --flag
 	fp := flag.String("file", "", "File path to YAML file with HTTP endpoints")
 	flag.Parse()
@@ -50,15 +53,16 @@ func main() {
 		log.Fatal("Failure to load YAML: ", err)
 	}
 
-	startTimer(endpoints, domainStatusMap)
+	startTimer(endpoints, domainStatusMap, *maxRuns)
 
 	// block the main thread
 	select {}
 }
 
-func runChecks(endpoints []Endpoint, domainStatusMap map[string]*DomainStatus) {
+func RunChecks(endpoints []Endpoint, domainStatusMap map[string]*DomainStatus) {
 	client := http.Client{}
 
+	// if many endpoints, you could speed up the checks by launching each check in its own goroutine
 	for _, endpoint := range endpoints {
 		// get hostname from url
 		parsedURL, err := url.Parse(endpoint.URL)
@@ -118,22 +122,29 @@ func runChecks(endpoints []Endpoint, domainStatusMap map[string]*DomainStatus) {
 		// check for 200 status code and proper latency < 500
 		if (res.StatusCode >= 200 && res.StatusCode < 300) && totalTime < 500 {
 			domainStatusMap[domain].UpCount++
-			log.Printf("UP: %s, %d, %dms", domain, res.StatusCode, totalTime)
+			//log.Printf("UP: %s, %d, %dms", domain, res.StatusCode, totalTime)
 		} else {
-			log.Printf("DOWN: %s, %d, %dms", domain, res.StatusCode, totalTime)
+			//log.Printf("DOWN: %s, %d, %dms", domain, res.StatusCode, totalTime)
 		}
 	}
 }
 
-func startTimer(endpoints []Endpoint, domainStatusMap map[string]*DomainStatus) {
+func startTimer(endpoints []Endpoint, domainStatusMap map[string]*DomainStatus, maxRuns int) {
 	c := cron.New()
 
+	runs := 0
 	// use cron for scheduling
 	err := c.AddFunc("@every 15s", func() {
 		//do work
-		runChecks(endpoints, domainStatusMap)
-		getAvailPercent(domainStatusMap)
+		RunChecks(endpoints, domainStatusMap)
+		GetAvailPercent(domainStatusMap)
 		fmt.Println("================================================================")
+		runs++
+		if maxRuns > 0 && runs >= maxRuns {
+			// if hit max runs
+			c.Stop()
+			os.Exit(0)
+		}
 	})
 	if err != nil {
 		log.Fatal("Error adding cron job: ", err)
@@ -154,12 +165,12 @@ func loadYAML(fp string) ([]Endpoint, error) {
 	return endpoints, err
 }
 
-func getAvailPercent(domainStatusMap map[string]*DomainStatus) {
+func GetAvailPercent(domainStatusMap map[string]*DomainStatus) {
 	for domain, status := range domainStatusMap {
 		availPercent := 0.0
 		if status.Requests > 0 {
 			// 100 * (number of HTTP requests that had an outcome of UP / number of HTTP requests)
-			fmt.Println(domain, "upcount=", status.UpCount, "reqcount=", status.Requests)
+			// fmt.Println(domain, "upcount=", status.UpCount, "reqcount=", status.Requests)
 			availPercent = 100 * (float64(status.UpCount) / float64(status.Requests))
 		}
 		availPercentRound := int(math.Round(availPercent))

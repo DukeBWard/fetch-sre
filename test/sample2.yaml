@@ -1,0 +1,11 @@
+- name: fetch index page
+  url: https://fetch.com/
+  headers:
+    user-agent: fetch-synthetic-monitor
+
+- name: fetch careers page
+  url: https://fetch.com/careers
+  method: GET
+
+- name: fetch rewards page
+  url: https://www.fetchrewards.com/

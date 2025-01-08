@@ -1,0 +1,5 @@
+- name: example domain
+  url: https://example.com/
+
+- name: another endpoint
+  url: https://httpbin.org/status/200
