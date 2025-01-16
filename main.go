@@ -36,6 +36,7 @@ func main() {
 
 	// get file path from --flag
 	fp := flag.String("file", "", "File path to YAML file with HTTP endpoints")
+
 	flag.Parse()
 
 	if *fp == "" {
@@ -87,6 +88,7 @@ func RunChecks(endpoints []Endpoint, domainStatusMap map[string]*DomainStatus) {
 			method = "GET"
 		}
 
+		// body is optional, if no body set to empty string
 		var bodyReader *strings.Reader
 		if endpoint.Body != "" {
 			bodyReader = strings.NewReader(endpoint.Body)
@@ -94,6 +96,9 @@ func RunChecks(endpoints []Endpoint, domainStatusMap map[string]*DomainStatus) {
 			bodyReader = strings.NewReader("")
 		}
 
+		// set up the request with proper method and body
+		// need to use a strings.Reader for body, needs an io.Reader
+		// cannot use strings
 		req, err := http.NewRequest(method, endpoint.URL, bodyReader)
 		if err != nil {
 			log.Printf("Error in request: %s", err)
@@ -123,9 +128,9 @@ func RunChecks(endpoints []Endpoint, domainStatusMap map[string]*DomainStatus) {
 		if (res.StatusCode >= 200 && res.StatusCode < 300) && totalTime < 500 {
 			domainStatusMap[domain].UpCount++
 			//log.Printf("UP: %s, %d, %dms", domain, res.StatusCode, totalTime)
-		} else {
-			//log.Printf("DOWN: %s, %d, %dms", domain, res.StatusCode, totalTime)
-		}
+		} // else {
+		//log.Printf("DOWN: %s, %d, %dms", domain, res.StatusCode, totalTime)
+		// }
 	}
 }
 

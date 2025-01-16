@@ -6,11 +6,11 @@
 1. Make sure you have Go installed and GOPATH and GOROOT configured properly
 2. Clone this repository to your machine (ex. `git clone [url of this repo]`)
 3. Run `go mod tidy` to install all external libraries
-4. Run `go run . --file=sample.yaml`
+4. Run `go run . --file=test/sample1.yaml`
 
 ## if you want to build and run
 4. Run `go build .` to build the binary
-5. Run `.\fetch-sre.exe --file=sample.yaml` to run the sample yaml file provided, or a filepath to a YAML file with HTML endpoints.
+5. Run `.\fetch-sre.exe --file=test/sample1.yaml` to run the sample yaml file provided, or a filepath to a YAML file with HTML endpoints.
 
 # run the test suite
 * Run `go test -v` to run the test suite
