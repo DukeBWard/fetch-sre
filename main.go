@@ -143,7 +143,7 @@ func startTimer(endpoints []Endpoint, domainStatusMap map[string]*DomainStatus, 
 		//do work
 		RunChecks(endpoints, domainStatusMap)
 		GetAvailPercent(domainStatusMap)
-		fmt.Println("================================================================")
+		fmt.Println("")
 		runs++
 		if maxRuns > 0 && runs >= maxRuns {
 			// if hit max runs
