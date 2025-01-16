@@ -61,7 +61,7 @@ func main() {
 }
 
 func RunChecks(endpoints []Endpoint, domainStatusMap map[string]*DomainStatus) {
-	client := http.Client{}
+	client := http.Client{Timeout: 500 * time.Millisecond}
 
 	// if many endpoints, you could speed up the checks by launching each check in its own goroutine
 	for _, endpoint := range endpoints {
@@ -111,9 +111,9 @@ func RunChecks(endpoints []Endpoint, domainStatusMap map[string]*DomainStatus) {
 		}
 
 		// make the request but get milliseconds res time
-		startTime := time.Now()
+		// startTime := time.Now()
 		res, err := client.Do(req)
-		totalTime := time.Since(startTime).Milliseconds()
+		// totalTime := time.Since(startTime).Milliseconds()
 
 		if err != nil {
 			// if error, its down
@@ -125,7 +125,7 @@ func RunChecks(endpoints []Endpoint, domainStatusMap map[string]*DomainStatus) {
 		res.Body.Close()
 
 		// check for 200 status code and proper latency < 500
-		if (res.StatusCode >= 200 && res.StatusCode < 300) && totalTime < 500 {
+		if res.StatusCode >= 200 && res.StatusCode < 300 {
 			domainStatusMap[domain].UpCount++
 			//log.Printf("UP: %s, %d, %dms", domain, res.StatusCode, totalTime)
 		} // else {
@@ -135,6 +135,7 @@ func RunChecks(endpoints []Endpoint, domainStatusMap map[string]*DomainStatus) {
 }
 
 func startTimer(endpoints []Endpoint, domainStatusMap map[string]*DomainStatus, maxRuns int) {
+	// go routines with thread sleep is more performant
 	c := cron.New()
 
 	runs := 0
